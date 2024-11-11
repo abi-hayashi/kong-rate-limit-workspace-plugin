@@ -183,7 +183,7 @@ local function setup_rl_plugin(admin_client, conf, service, consumer)
       path = "/plugins",
       body = {
         name = "rate-limiting-workspace",
-        service = { id = service.id, },
+        -- service = { id = service.id, },
         config = conf,
       },
       headers = {
