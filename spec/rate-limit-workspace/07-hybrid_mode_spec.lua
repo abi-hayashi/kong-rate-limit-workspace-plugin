@@ -4,7 +4,7 @@ local REDIS_HOST        = helpers.redis_host
 local REDIS_PORT        = helpers.redis_port
 
 for _, strategy in helpers.each_strategy({"postgres"}) do
-  describe("Plugin: rate-limiting (handler.access) worked with [#" .. strategy .. "]", function()
+  describe("Plugin: rate-limiting-workspace (handler.access) worked with [#" .. strategy .. "]", function()
     local dp_prefix = "servroot2"
     local dp_logfile, bp, db, route
 
@@ -13,7 +13,7 @@ for _, strategy in helpers.each_strategy({"postgres"}) do
         "services",
         "routes",
         "plugins",
-      }, { "rate-limiting", })
+      }, { "rate-limiting-workspace", })
 
       local service = assert(bp.services:insert {
         host     = helpers.mock_upstream_host,
@@ -65,7 +65,7 @@ for _, strategy in helpers.each_strategy({"postgres"}) do
           method  = "POST",
           path    = "/plugins",
           body    = {
-            name = "rate-limiting",
+            name = "rate-limiting-workspace",
             route = {
               id = route.id
             },

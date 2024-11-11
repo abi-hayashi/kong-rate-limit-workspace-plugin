@@ -18,7 +18,7 @@ local REDIS_PASSWORD = "secret"
 
 local SLEEP_TIME = 1
 
-describe("Plugin: rate-limiting (integration)", function()
+describe("Plugin: rate-limiting-workspace (integration)", function()
   local client
   local bp
   local red
@@ -29,7 +29,7 @@ describe("Plugin: rate-limiting (integration)", function()
       "services",
       "plugins",
     }, {
-      "rate-limiting"
+      "rate-limiting-workspace"
     })
     red = redis_helper.connect(REDIS_HOST, REDIS_PORT)
   end)
@@ -83,14 +83,14 @@ describe("Plugin: rate-limiting (integration)", function()
             "services",
             "plugins",
           }, {
-            "rate-limiting"
+            "rate-limiting-workspace"
           })
 
           local route1 = assert(bp.routes:insert {
             hosts        = { "redistest1.test" },
           })
           assert(bp.plugins:insert {
-            name = "rate-limiting",
+            name = "rate-limiting-workspace",
             route = { id = route1.id },
             config = {
               minute            = 1,
@@ -113,7 +113,7 @@ describe("Plugin: rate-limiting (integration)", function()
             hosts        = { "redistest2.test" },
           })
           assert(bp.plugins:insert {
-            name = "rate-limiting",
+            name = "rate-limiting-workspace",
             route = { id = route2.id },
             config = {
               minute            = 1,
@@ -135,7 +135,7 @@ describe("Plugin: rate-limiting (integration)", function()
             hosts        = { "redistest3.test" },
           })
           assert(bp.plugins:insert {
-            name = "rate-limiting",
+            name = "rate-limiting-workspace",
             route = { id = route3.id },
             config = {
               minute            = 2, -- Handle multiple tests
@@ -159,7 +159,7 @@ describe("Plugin: rate-limiting (integration)", function()
             hosts        = { "redistest4.test" },
           })
           assert(bp.plugins:insert {
-            name = "rate-limiting",
+            name = "rate-limiting-workspace",
             route = { id = route4.id },
             config = {
               minute            = 1,
@@ -377,7 +377,7 @@ describe("Plugin: rate-limiting (integration)", function()
         path = "/plugins",
         headers = { ["Content-Type"] = "application/json" },
         body = {
-          name = "rate-limiting",
+          name = "rate-limiting-workspace",
           config = {
             minute = 100,
             policy = "redis",
@@ -433,7 +433,7 @@ describe("Plugin: rate-limiting (integration)", function()
         path = "/plugins",
         headers = { ["Content-Type"] = "application/json" },
         body = {
-          name = "rate-limiting",
+          name = "rate-limiting-workspace",
           config = plugin_config,
         },
       })

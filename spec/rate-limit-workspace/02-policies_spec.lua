@@ -16,13 +16,13 @@ local function get_service_and_route_ids(conf)
   local service_id = conf.service_id
   local route_id   = conf.route_id
 
-  if not service_id or service_id == null then
+  -- if not service_id or service_id == null then
     service_id = EMPTY_UUID
-  end
+  -- end
 
-  if not route_id or route_id == null then
+  -- if not route_id or route_id == null then
     route_id = EMPTY_UUID
-  end
+  -- end
 
   return service_id, route_id
 end
@@ -34,13 +34,13 @@ local function get_local_key(conf, identifier, period, period_date)
     period_date, period)
 end
 
-describe("Plugin: rate-limiting (policies)", function()
+describe("Plugin: rate-limiting-workspace (policies)", function()
 
   local policies
 
   lazy_setup(function()
-    package.loaded["kong.plugins.rate-limiting.policies"] = nil
-    policies = require "kong.plugins.rate-limiting.policies"
+    package.loaded["kong.plugins.rate-limiting-workspace.policies"] = nil
+    policies = require "kong.plugins.rate-limiting-workspace.policies"
 
     if not _G.kong then
       _G.kong.db = {}

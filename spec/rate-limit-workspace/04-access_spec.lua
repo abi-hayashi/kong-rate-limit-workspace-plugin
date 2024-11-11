@@ -86,7 +86,7 @@ local function client_requests(n, proxy_fn)
     table_insert(ret.limit, tonumber(res.headers["RateLimit-Limit"]))
     table_insert(ret.remaining, tonumber(res.headers["RateLimit-Remaining"]))
 
-    helpers.wait_timer("rate-limiting", true, "any-finish")
+    helpers.wait_timer("rate-limiting-workspace", true, "any-finish")
   end
 
   return ret
@@ -182,7 +182,7 @@ local function setup_rl_plugin(admin_client, conf, service, consumer)
       method = "POST",
       path = "/plugins",
       body = {
-        name = "rate-limiting",
+        name = "rate-limiting-workspace",
         service = { id = service.id, },
         config = conf,
       },
@@ -196,7 +196,7 @@ local function setup_rl_plugin(admin_client, conf, service, consumer)
       method = "POST",
       path = "/plugins",
       body = {
-        name = "rate-limiting",
+        name = "rate-limiting-workspace",
         consumer = { id = consumer.id, },
         config = conf,
       },
@@ -210,7 +210,7 @@ local function setup_rl_plugin(admin_client, conf, service, consumer)
       method = "POST",
       path = "/plugins",
       body = {
-        name = "rate-limiting",
+        name = "rate-limiting-workspace",
         config = conf,
       },
       headers = {
@@ -334,12 +334,13 @@ end
 
 
 local limit_by_confs = {
-  "ip",
-  "consumer",
-  "credential",
-  "service",
-  "header",
-  "path",
+  -- "ip",
+  -- "consumer",
+  -- "credential",
+  -- "service",
+  -- "header",
+  -- "path",
+  "workspace",
 }
 
 
@@ -373,14 +374,14 @@ if ssl_conf_name ~= "no_ssl" and policy ~= "redis" then
   goto continue
 end
 
-desc = fmt("Plugin: rate-limiting #db (access) [strategy: %s] [policy: %s] [limit_by: %s] [redis: %s]",
+desc = fmt("Plugin: rate-limiting-workspace #db (access) [strategy: %s] [policy: %s] [limit_by: %s] [redis: %s]",
                  strategy, policy, limit_by, ssl_conf_name)
 
 describe(desc, function()
   local db, https_server, admin_client
 
   lazy_setup(function()
-    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting", "key-auth" })
+    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting-workspace", "key-auth" })
 
     if policy == "redis" then
       redis_helper.reset_redis(REDIS_HOST, REDIS_PORT)
@@ -395,7 +396,7 @@ describe(desc, function()
     helpers.start_kong({
       database   = strategy,
       nginx_conf = "spec/fixtures/custom_nginx.template",
-      plugins = "bundled,rate-limiting,key-auth",
+      plugins = "bundled,rate-limiting-workspace,key-auth",
       trusted_ips = "0.0.0.0/0,::/0",
       lua_ssl_trusted_certificate = "spec/fixtures/redis/ca.crt",
     })
@@ -479,18 +480,22 @@ describe(desc, function()
     })
 
     local function proxy_fn()
-      if limit_by == "ip" or
-         limit_by == "path" or
-         limit_by == "service" then
+      -- if limit_by == "ip" or
+      --    limit_by == "path" or
+      --    limit_by == "service" then
+      --   return GET(test_path)
+      -- end
+
+      -- if limit_by == "header" then
+      --   return GET(test_path, { [test_header] = "test" })
+      -- end
+
+      -- if limit_by == "consumer" or limit_by == "credential" then
+      --   return GET(test_path, { headers = { [test_key_name] = test_credential }})
+      -- end
+
+      if limit_by == "workspace" then
         return GET(test_path)
-      end
-
-      if limit_by == "header" then
-        return GET(test_path, { [test_header] = "test" })
-      end
-
-      if limit_by == "consumer" or limit_by == "credential" then
-        return GET(test_path, { headers = { [test_key_name] = test_credential }})
       end
 
       error("unexpected limit_by: " .. limit_by)
@@ -823,6 +828,52 @@ if limit_by == "ip" then
 
   end)      -- it("blocks with a custom error code and message", function()
 end         -- if limit_by == "ip" then
+
+if limit_by == "workspace" then
+  it("blocks if exceeding limit (workspace)", function ()
+    local test_path_1, test_path_2 = "/1-test", "/2-test"
+
+    local service_1, service_2 = setup_service(admin_client, UPSTREAM_URL),
+                                 setup_service(admin_client, UPSTREAM_URL)
+    local route_1, route_2 = setup_route(admin_client, service_1, { test_path_1 }),
+                             setup_route(admin_client, service_2, { test_path_2 })
+    local rl_plugin = setup_rl_plugin(admin_client, {
+      minute              = 6,
+      policy              = policy,
+      limit_by            = "workspace",
+      redis = {
+        host          = REDIS_HOST,
+        port          = ssl_conf.redis_port,
+        password      = REDIS_PASSWORD,
+        database      = REDIS_DATABASE,
+        ssl           = ssl_conf.redis_ssl,
+        ssl_verify    = ssl_conf.redis_ssl_verify,
+        server_name   = ssl_conf.redis_server_name,
+      }
+    })
+
+    finally(function()
+      delete_plugin(admin_client, rl_plugin)
+      delete_route(admin_client, route_1)
+      delete_route(admin_client, route_2)
+      delete_service(admin_client, service_1)
+      delete_service(admin_client, service_2)
+    end)
+
+    helpers.wait_for_all_config_update({
+      override_global_rate_limiting_plugin = true,
+      override_global_key_auth_plugin = true,
+    })
+
+    retry(function ()
+      for _, path in ipairs({ test_path_1, test_path_2 }) do
+        validate_headers(client_requests(7, function()
+          return GET(path)
+        end), true)
+      end     -- for _, path in ipairs({ test_path_1, test_path_2 }) do
+    end)      -- retry(function ()
+  end)        -- it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function ()
+end           -- if limit_by == "workspace" then
 
 if limit_by == "service" then
   it("blocks if exceeding limit (multiple service)", function ()

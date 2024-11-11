@@ -3,7 +3,7 @@ local cjson = require "cjson"
 local uuid = require("kong.tools.uuid").uuid
 
 
-describe("Plugin: rate-limiting (shorthand fields)", function()
+describe("Plugin: rate-limiting-workspace (shorthand fields)", function()
   local bp, route, admin_client
   local plugin_id = uuid()
 
@@ -13,7 +13,7 @@ describe("Plugin: rate-limiting (shorthand fields)", function()
       "services",
       "plugins",
     }, {
-      "rate-limiting"
+      "rate-limiting-workspace"
     })
 
     route = assert(bp.routes:insert {
@@ -91,7 +91,7 @@ describe("Plugin: rate-limiting (shorthand fields)", function()
         headers = { ["Content-Type"] = "application/json" },
         body = {
           id = plugin_id,
-          name = "rate-limiting",
+          name = "rate-limiting-workspace",
           config = plugin_config,
         },
       })
@@ -106,7 +106,7 @@ describe("Plugin: rate-limiting (shorthand fields)", function()
         path = "/plugins/" .. plugin_id,
         headers = { ["Content-Type"] = "application/json" },
         body = {
-          name = "rate-limiting",
+          name = "rate-limiting-workspace",
           config = {
             redis_host = updated_host
           },
@@ -137,7 +137,7 @@ describe("Plugin: rate-limiting (shorthand fields)", function()
         path = "/plugins/" .. plugin_id,
         headers = { ["Content-Type"] = "application/json" },
         body = {
-          name = "rate-limiting",
+          name = "rate-limiting-workspace",
           config = plugin_config,
         },
       })

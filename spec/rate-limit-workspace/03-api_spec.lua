@@ -4,7 +4,7 @@ local Errors  = require "kong.db.errors"
 
 
 for _, strategy in helpers.each_strategy() do
-  describe("Plugin: rate-limiting (API) [#" .. strategy .. "]", function()
+  describe("Plugin: rate-limiting-workspace (API) [#" .. strategy .. "]", function()
     local admin_client
     local bp
 
@@ -55,7 +55,7 @@ for _, strategy in helpers.each_strategy() do
           method  = "POST",
           path    = "/plugins",
           body    = {
-            name  = "rate-limiting",
+            name  = "rate-limiting-workspace",
             route = { id = route.id },
           },
           headers = {
@@ -82,7 +82,7 @@ for _, strategy in helpers.each_strategy() do
           method  = "POST",
           path    = "/plugins",
           body    = {
-            name             = "rate-limiting",
+            name             = "rate-limiting-workspace",
             route = { id = route.id },
             config           = {
               second = 10
@@ -105,7 +105,7 @@ for _, strategy in helpers.each_strategy() do
               plugins = {
                 {
                   id = id,
-                  name = "rate-limiting",
+                  name = "rate-limiting-workspace",
                   config = {
                     second = 10
                   }
@@ -128,7 +128,7 @@ for _, strategy in helpers.each_strategy() do
               plugins = {
                 {
                   id = id,
-                  name = "rate-limiting",
+                  name = "rate-limiting-workspace",
                   config = {
                     policy = "cluster",
                     second = 10
@@ -148,7 +148,7 @@ for _, strategy in helpers.each_strategy() do
         it("sets policy to local by default", function()
           local res = admin_client:post("/plugins", {
             body    = {
-              name  = "rate-limiting",
+              name  = "rate-limiting-workspace",
               config = {
                 second = 10
               }
@@ -164,7 +164,7 @@ for _, strategy in helpers.each_strategy() do
         it("does allow setting policy to cluster on non-dbless", function()
           local res = admin_client:post("/plugins", {
             body    = {
-              name  = "rate-limiting",
+              name  = "rate-limiting-workspace",
               route = { id = route2.id },
               config = {
                 policy = 'cluster',
