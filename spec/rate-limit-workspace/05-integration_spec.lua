@@ -182,6 +182,7 @@ describe("Plugin: rate-limiting-workspace (integration)", function()
           assert(helpers.start_kong({
             nginx_conf = "spec/fixtures/custom_nginx.template",
             lua_ssl_trusted_certificate = config.lua_ssl_trusted_certificate,
+            plugins = "bundled,rate-limiting-workspace",
           }))
           client = helpers.proxy_client()
         end)
@@ -326,6 +327,7 @@ describe("Plugin: rate-limiting-workspace (integration)", function()
     lazy_setup(function()
       assert(helpers.start_kong({
         nginx_conf = "spec/fixtures/custom_nginx.template",
+        plugins = "bundled,rate-limiting-workspace",
       }))
 
       route3 = assert(bp.routes:insert {

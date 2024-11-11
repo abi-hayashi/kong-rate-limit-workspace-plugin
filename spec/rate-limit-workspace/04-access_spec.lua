@@ -1087,7 +1087,7 @@ describe(desc, function ()
     return helpers.start_kong({
       database   = strategy,
       nginx_conf = "spec/fixtures/custom_nginx.template",
-      plugins = "bundled,rate-limiting,key-auth",
+      plugins = "bundled,rate-limiting-workspace,key-auth",
       trusted_ips = "0.0.0.0/0,::/0",
       lua_ssl_trusted_certificate = "spec/fixtures/redis/ca.crt",
     })
@@ -1309,7 +1309,7 @@ describe(desc, function ()
     assert(helpers.start_kong({
       database   = strategy,
       nginx_conf = "spec/fixtures/custom_nginx.template",
-      plugins = "bundled,rate-limiting,key-auth",
+      plugins = "bundled,rate-limiting-workspace,key-auth",
       trusted_ips = "0.0.0.0/0,::/0",
       lua_ssl_trusted_certificate = "spec/fixtures/redis/ca.crt",
       log_level = "error"
@@ -1418,7 +1418,7 @@ describe(desc, function ()
     assert(helpers.start_kong({
       database   = strategy,
       nginx_conf = "spec/fixtures/custom_nginx.template",
-      plugins = "bundled,rate-limiting,key-auth",
+      plugins = "bundled,rate-limiting-workspace,key-auth",
       trusted_ips = "0.0.0.0/0,::/0",
       lua_ssl_trusted_certificate = "spec/fixtures/redis/ca.crt",
     }))

@@ -20,7 +20,9 @@ describe("Plugin: rate-limiting-workspace (shorthand fields)", function()
       hosts = { "redis.test" },
     })
 
-    assert(helpers.start_kong())
+    assert(helpers.start_kong({
+      plugins = "bundled,rate-limiting-workspace",
+    }))
     admin_client = helpers.admin_client()
   end)
 

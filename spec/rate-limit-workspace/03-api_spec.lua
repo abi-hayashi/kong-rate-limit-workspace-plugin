@@ -45,6 +45,7 @@ for _, strategy in helpers.each_strategy() do
         assert(helpers.start_kong({
           database   = strategy,
           nginx_conf = "spec/fixtures/custom_nginx.template",
+          plugins = "bundled,rate-limiting-workspace",
         }))
 
         admin_client = helpers.admin_client()

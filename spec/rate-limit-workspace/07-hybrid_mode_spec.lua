@@ -36,6 +36,7 @@ for _, strategy in helpers.each_strategy({"postgres"}) do
         nginx_conf = "spec/fixtures/custom_nginx.template",
         admin_listen = "0.0.0.0:9001",
         proxy_listen = "off",
+        plugins = "bundled,rate-limiting-workspace",
       }))
 
       assert(helpers.start_kong({
@@ -49,6 +50,7 @@ for _, strategy in helpers.each_strategy({"postgres"}) do
         cluster_telemetry_endpoint = "127.0.0.1:9006",
         admin_listen = "off",
         proxy_listen = "0.0.0.0:9002",
+        plugins = "bundled,rate-limiting-workspace",
       }))
       dp_logfile = helpers.get_running_conf(dp_prefix).nginx_err_logs
     end)
