@@ -159,7 +159,7 @@ describe("Plugin: rate-limiting-workspace (shorthand fields)", function()
           hosts = { "redis" .. tostring(i) .. ".test" },
         })
         assert(bp.plugins:insert {
-          name = "rate-limiting",
+          name = "rate-limiting-workspace",
           route = { id = route.id },
           config = {
             minute = 100 + i,
