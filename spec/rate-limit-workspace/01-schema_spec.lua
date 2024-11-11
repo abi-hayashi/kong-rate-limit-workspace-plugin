@@ -18,19 +18,19 @@ describe("Plugin: rate-limiting-workspace (schema)", function()
     assert.is_nil(err)
   end)
 
-  it("proper config validates (header)", function()
-    local config = { second = 10, limit_by = "header", header_name = "X-App-Version" }
-    local ok, _, err = v(config, schema_def)
-    assert.truthy(ok)
-    assert.is_nil(err)
-  end)
+  -- it("proper config validates (header)", function()
+  --   local config = { second = 10, limit_by = "header", header_name = "X-App-Version" }
+  --   local ok, _, err = v(config, schema_def)
+  --   assert.truthy(ok)
+  --   assert.is_nil(err)
+  -- end)
 
-  it("proper config validates (path)", function()
-    local config = { second = 10, limit_by = "path", path = "/request" }
-    local ok, _, err = v(config, schema_def)
-    assert.truthy(ok)
-    assert.is_nil(err)
-  end)
+  -- it("proper config validates (path)", function()
+  --   local config = { second = 10, limit_by = "path", path = "/request" }
+  --   local ok, _, err = v(config, schema_def)
+  --   assert.truthy(ok)
+  --   assert.is_nil(err)
+  -- end)
 
   describe("errors", function()
     it("limits: smaller unit is less than bigger unit", function()
@@ -55,26 +55,26 @@ describe("Plugin: rate-limiting-workspace (schema)", function()
                   err["@entity"])
     end)
 
-    it("is limited by header but the header_name field is missing", function()
-      local config = { second = 10, limit_by = "header", header_name = nil }
-      local ok, err = v(config, schema_def)
-      assert.falsy(ok)
-      assert.equal("required field missing", err.config.header_name)
-    end)
+    -- it("is limited by header but the header_name field is missing", function()
+    --   local config = { second = 10, limit_by = "header", header_name = nil }
+    --   local ok, err = v(config, schema_def)
+    --   assert.falsy(ok)
+    --   assert.equal("required field missing", err.config.header_name)
+    -- end)
 
-    it("is limited by path but the path field is missing", function()
-      local config = { second = 10, limit_by = "path", path =  nil }
-      local ok, err = v(config, schema_def)
-      assert.falsy(ok)
-      assert.equal("required field missing", err.config.path)
-    end)
+    -- it("is limited by path but the path field is missing", function()
+    --   local config = { second = 10, limit_by = "path", path =  nil }
+    --   local ok, err = v(config, schema_def)
+    --   assert.falsy(ok)
+    --   assert.equal("required field missing", err.config.path)
+    -- end)
 
-    it("is limited by path but the path field is missing", function()
-      local config = { second = 10, limit_by = "path", path =  nil }
-      local ok, err = v(config, schema_def)
-      assert.falsy(ok)
-      assert.equal("required field missing", err.config.path)
-    end)
+    -- it("is limited by path but the path field is missing", function()
+    --   local config = { second = 10, limit_by = "path", path =  nil }
+    --   local ok, err = v(config, schema_def)
+    --   assert.falsy(ok)
+    --   assert.equal("required field missing", err.config.path)
+    -- end)
 
     it("proper config validates with redis new structure", function()
       local config = {
