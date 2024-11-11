@@ -1145,7 +1145,7 @@ if policy == "cluster" then
   it("does not work if an error occurs", function ()
     setup_rl_plugin(admin_client, {
       minute              = 6,
-      limit_by            = "ip",
+      limit_by            = "workspace",
       policy              = policy,
       fault_tolerant      = false,
     }, service)
@@ -1188,7 +1188,7 @@ if policy == "cluster" then
   it("keeps working if an error occurs", function ()
     setup_rl_plugin(admin_client, {
       minute              = 6,
-      limit_by            = "ip",
+      limit_by            = "workspace",
       policy              = policy,
       fault_tolerant      = true,
     }, service)
@@ -1232,7 +1232,7 @@ if policy == "redis" then
     setup_rl_plugin(admin_client, {
       minute              = 6,
       policy              = "redis",
-      limit_by            = "ip",
+      limit_by            = "workspace",
       redis = {
         host          = "127.0.0.1",
         port          = 80,                     -- bad redis port
@@ -1263,7 +1263,7 @@ if policy == "redis" then
     setup_rl_plugin(admin_client, {
       minute              = 6,
       policy              = "redis",
-      limit_by            = "ip",
+      limit_by            = "workspace",
       redis = {
         host          = "127.0.0.1",
         port          = 80,                     -- bad redis port
@@ -1300,7 +1300,7 @@ describe(desc, function ()
 
   lazy_setup(function()
     helpers.get_db_utils(strategy, nil, {
-      "rate-limiting",
+      "rate-limiting-workspace",
     })
 
     https_server = helpers.https_server.new(UPSTREAM_PORT)
@@ -1339,7 +1339,7 @@ describe(desc, function ()
     local rl_plugin = setup_rl_plugin(admin_client, {
       minute              = 6,
       policy              = "redis",
-      limit_by            = "ip",
+      limit_by            = "workspace",
       redis = {
         host          = REDIS_HOST,
         port          = REDIS_PORT,
