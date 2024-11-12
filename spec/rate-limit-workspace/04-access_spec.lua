@@ -174,50 +174,20 @@ local function setup_route(admin_client, service, paths, protocol)
   return cjson.decode(assert.res_status(201, route))
 end
 
-local function setup_rl_plugin(admin_client, conf, service, consumer)
+local function setup_rl_plugin(admin_client, conf)
   local plugin
 
-  if service then
-    plugin = assert(admin_client:send({
-      method = "POST",
-      path = "/plugins",
-      body = {
-        name = "rate-limiting-workspace",
-        -- service = { id = service.id, },
-        config = conf,
-      },
-      headers = {
-        ["Content-Type"] = "application/json",
-      },
-    }))
-
-  elseif consumer then
-    plugin = assert(admin_client:send({
-      method = "POST",
-      path = "/plugins",
-      body = {
-        name = "rate-limiting-workspace",
-        consumer = { id = consumer.id, },
-        config = conf,
-      },
-      headers = {
-        ["Content-Type"] = "application/json",
-      },
-    }))
-
-  else
-    plugin = assert(admin_client:send({
-      method = "POST",
-      path = "/plugins",
-      body = {
-        name = "rate-limiting-workspace",
-        config = conf,
-      },
-      headers = {
-        ["Content-Type"] = "application/json",
-      },
-    }))
-  end
+  plugin = assert(admin_client:send({
+    method = "POST",
+    path = "/plugins",
+    body = {
+      name = "rate-limiting-workspace",
+      config = conf,
+    },
+    headers = {
+      ["Content-Type"] = "application/json",
+    },
+  }))
 
   return cjson.decode(assert.res_status(201, plugin))
 end
@@ -448,7 +418,7 @@ describe(desc, function()
         ssl_verify    = ssl_conf.redis_ssl_verify,
         server_name   = ssl_conf.redis_server_name,
       }
-    }, service)
+    })
 
     local auth_plugin
     local consumer
@@ -525,7 +495,7 @@ if limit_by == "ip" then
         ssl_verify    = ssl_conf.redis_ssl_verify,
         server_name   = ssl_conf.redis_server_name,
       }
-    }, service)
+    })
 
     finally(function()
       delete_plugin(admin_client, rl_plugin)
@@ -547,182 +517,7 @@ if limit_by == "ip" then
     end)      -- retry(function ()
   end)        -- it("blocks if exceeding limit (multiple ip)", function()
 
-  it("blocks if exceeding limit #grpc (single ip)", function()
-    local test_path = "/hello.HelloService/"
 
-    local service = setup_service(admin_client, helpers.grpcbin_url)
-    local route = setup_route(admin_client, service, { test_path }, "grpc")
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = "ip",
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    }, service)
-
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route)
-      delete_service(admin_client, service)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    retry(function ()
-      for i = 1, 6 do
-        local ok, res = helpers.proxy_client_grpc(){
-          service = "hello.HelloService.SayHello",
-          opts = {
-            ["-v"] = true,
-          },
-        }
-
-        assert.is_true(ok, res)
-
-        assert.matches("x%-ratelimit%-limit%-minute: 6", res)
-        assert.matches("x%-ratelimit%-remaining%-minute: " .. (6 - i), res)
-        assert.matches("ratelimit%-limit: 6", res)
-        assert.matches("ratelimit%-remaining: " .. (6 - i), res)
-
-        local reset = tonumber(string.match(res, "ratelimit%-reset: (%d+)"))
-        assert.equal(true, reset <= 60 and reset >= 0)
-
-        -- wait for zero-delay timer
-        helpers.wait_timer("rate-limiting", true, "any-finish")
-      end
-
-      -- Additional request, while limit is 6/minute
-      local ok, res = helpers.proxy_client_grpc(){
-        service = "hello.HelloService.SayHello",
-        opts = {
-          ["-v"] = true,
-        },
-      }
-      assert.falsy(ok)
-      assert.matches("Code: ResourceExhausted", res)
-
-      assert.matches("ratelimit%-limit: 6", res)
-      assert.matches("ratelimit%-remaining: 0", res)
-
-      local retry = tonumber(string.match(res, "retry%-after: (%d+)"))
-      assert.equal(true, retry <= 60 and retry > 0)
-
-      local reset = tonumber(string.match(res, "ratelimit%-reset: (%d+)"))
-      assert.equal(true, reset <= 60 and reset > 0)
-    end)
-  end)
-
-  it("hide_client_headers (single ip)", function ()
-    local test_path = "/test"
-
-    local service = setup_service(admin_client, UPSTREAM_URL)
-    local route = setup_route(admin_client, service, { test_path })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = "ip",
-      hide_client_headers = true,
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    }, service)
-
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route)
-      delete_service(admin_client, service)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    local res = assert(GET(test_path))
-    assert.res_status(200, res)
-
-    assert.is_nil(res.headers["X-Ratelimit-Limit-Minute"])
-    assert.is_nil(res.headers["X-Ratelimit-Remaining-Minute"])
-    assert.is_nil(res.headers["Ratelimit-Limit"])
-    assert.is_nil(res.headers["Ratelimit-Remaining"])
-    assert.is_nil(res.headers["Ratelimit-Reset"])
-    assert.is_nil(res.headers["Retry-After"])
-
-    -- repeat until get rate-limited
-    helpers.wait_until(function()
-      res = assert(GET(test_path))
-      return res.status == 429, "should be rate-limited (429), got " .. res.status
-    end, 10)
-
-    assert.res_status(429, res)
-    assert.is_nil(res.headers["X-Ratelimit-Limit-Minute"])
-    assert.is_nil(res.headers["X-Ratelimit-Remaining-Minute"])
-    assert.is_nil(res.headers["Ratelimit-Limit"])
-    assert.is_nil(res.headers["Ratelimit-Remaining"])
-    assert.is_nil(res.headers["Ratelimit-Reset"])
-    assert.is_nil(res.headers["Retry-After"])
-  end)
-
-  it("handles multiple limits (single ip)", function()
-    local test_path = "/test"
-    local test_header = "test-header"
-
-    local service = setup_service(admin_client, UPSTREAM_URL)
-    local route = setup_route(admin_client, service, { test_path })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      hour                = 99999,
-      policy              = policy,
-      limit_by            = limit_by,
-      path                = test_path,
-      header_name         = test_header,
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    }, service)
-
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route)
-      delete_service(admin_client, service)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    local function proxy_fn()
-      return GET(test_path)
-    end
-
-    retry(function ()
-      validate_headers(client_requests(7, proxy_fn), true, true)
-    end)
-
-  end)
 
   it("expire counter", function()
     local test_path = "/test"
@@ -732,7 +527,7 @@ if limit_by == "ip" then
     local rl_plugin = setup_rl_plugin(admin_client, {
       second              = 1,
       policy              = policy,
-      limit_by            = "ip",
+      limit_by            = "workspace",
       redis = {
         host          = REDIS_HOST,
         port          = ssl_conf.redis_port,
@@ -742,7 +537,7 @@ if limit_by == "ip" then
         ssl_verify    = ssl_conf.redis_ssl_verify,
         server_name   = ssl_conf.redis_server_name,
       }
-    }, service)
+    })
 
     finally(function()
       delete_plugin(admin_client, rl_plugin)
@@ -804,7 +599,7 @@ if limit_by == "ip" then
       },
       error_code          = 404,
       error_message       = "Fake Not Found",
-    }, service)
+    })
 
     finally(function()
       delete_plugin(admin_client, rl_plugin)
@@ -831,12 +626,10 @@ end         -- if limit_by == "ip" then
 
 if limit_by == "workspace" then
   it("blocks if exceeding limit (workspace)", function ()
-    local test_path_1, test_path_2 = "/1-test", "/2-test"
+    local test_path_1
 
-    local service_1, service_2 = setup_service(admin_client, UPSTREAM_URL),
-                                 setup_service(admin_client, UPSTREAM_URL)
-    local route_1, route_2 = setup_route(admin_client, service_1, { test_path_1 }),
-                             setup_route(admin_client, service_2, { test_path_2 })
+    local service_1 = setup_service(admin_client, UPSTREAM_URL)
+    local route_1 = setup_route(admin_client, service_1, { test_path_1 })
     local rl_plugin = setup_rl_plugin(admin_client, {
       minute              = 6,
       policy              = policy,
@@ -855,9 +648,7 @@ if limit_by == "workspace" then
     finally(function()
       delete_plugin(admin_client, rl_plugin)
       delete_route(admin_client, route_1)
-      delete_route(admin_client, route_2)
       delete_service(admin_client, service_1)
-      delete_service(admin_client, service_2)
     end)
 
     helpers.wait_for_all_config_update({
@@ -866,7 +657,7 @@ if limit_by == "workspace" then
     })
 
     retry(function ()
-      for _, path in ipairs({ test_path_1, test_path_2 }) do
+      for _, path in ipairs({ test_path_1 }) do
         validate_headers(client_requests(7, function()
           return GET(path)
         end), true)
@@ -875,198 +666,6 @@ if limit_by == "workspace" then
   end)        -- it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function ()
 end           -- if limit_by == "workspace" then
 
-if limit_by == "service" then
-  it("blocks if exceeding limit (multiple service)", function ()
-    local test_path_1, test_path_2 = "/1-test", "/2-test"
-
-    local service_1, service_2 = setup_service(admin_client, UPSTREAM_URL),
-                                 setup_service(admin_client, UPSTREAM_URL)
-    local route_1, route_2 = setup_route(admin_client, service_1, { test_path_1 }),
-                             setup_route(admin_client, service_2, { test_path_2 })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = "service",
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    })
-
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route_1)
-      delete_route(admin_client, route_2)
-      delete_service(admin_client, service_1)
-      delete_service(admin_client, service_2)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    retry(function ()
-      for _, path in ipairs({ test_path_1, test_path_2 }) do
-        validate_headers(client_requests(7, function()
-          return GET(path)
-        end), true)
-      end     -- for _, path in ipairs({ test_path_1, test_path_2 }) do
-    end)      -- retry(function ()
-  end)        -- it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function ()
-end           -- if limit_by == "service" then
-
-if limit_by == "path" then
-  it("blocks if exceeding limit (multiple path)", function()
-    local test_path_1, test_path_2 = "/1-test", "/2-test"
-
-    local service = setup_service(admin_client, UPSTREAM_URL)
-    local route_1, route_2 = setup_route(admin_client, service, { test_path_1 }),
-                             setup_route(admin_client, service, { test_path_2 })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = "path",
-      path                = test_path_1,
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    }, service)
-
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route_1)
-      delete_route(admin_client, route_2)
-      delete_service(admin_client, service)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    retry(function ()
-      for _, path in ipairs({ test_path_1, test_path_2 }) do
-        validate_headers(client_requests(7, function()
-          return GET(path)
-        end), true)
-      end     -- for _, path in ipairs({ test_path_1, test_path_2 }) do
-    end)      -- retry(function ()
-
-  end)        -- it("blocks if exceeding limit (multiple path)", function()
-end           -- if limit_by == "path" then
-
-if limit_by == "header" then
-  it("blocks if exceeding limit (multiple header)", function()
-    local test_path = "/test"
-    local test_header_1, test_header_2 = "test-header-1", "test-header-2"
-
-    local service = setup_service(admin_client, UPSTREAM_URL)
-    local route = setup_route(admin_client, service, { test_path })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = "header",
-      header_name         = test_header_1,
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    }, service)
-
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route)
-      delete_service(admin_client, service)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    retry(function ()
-      for _, header_name in ipairs({ test_header_1, test_header_2 }) do
-        validate_headers(client_requests(7, function()
-          return GET(test_path, { headers = { [header_name] = "test" }})
-        end), true)
-      end     -- for _, header_name in ipairs({ test_header_1, test_header_2 }) do
-    end)      -- retry(function ()
-
-  end)        -- it("blocks if exceeding limit (multiple header)", function()
-end           -- if limit_by == "header" then
-
-if limit_by == "consumer" or limit_by == "credential" then
-  it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function()
-    local test_path = "/test"
-    local test_key_name = "test-key"
-    local test_credential_1, test_credential_2 = "test_credential_1", "test_credential_2"
-
-    local service = setup_service(admin_client, UPSTREAM_URL)
-    local route = setup_route(admin_client, service, { test_path })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = limit_by,
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    }, service)
-    local auth_plugin = setup_key_auth_plugin(admin_client, {
-      key_names = { test_key_name },
-    }, service)
-    local consumer_1, consumer_2 = setup_consumer(admin_client, "Bob"), setup_consumer(admin_client, "Alice")
-    local credential_1, credential_2 = setup_credential(admin_client, consumer_1, test_credential_1),
-                                       setup_credential(admin_client, consumer_2, test_credential_2)
-
-    finally(function()
-      delete_credential(admin_client, credential_1)
-      delete_credential(admin_client, credential_2)
-      delete_consumer(admin_client, consumer_1)
-      delete_consumer(admin_client, consumer_2)
-      delete_plugin(admin_client, auth_plugin)
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route)
-      delete_service(admin_client, service)
-    end)
-
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
-
-    retry(function()
-      for _, credential in ipairs({ test_credential_1, test_credential_2 }) do
-        validate_headers(client_requests(7, function()
-          return GET(test_path, { headers = { [test_key_name] = credential }})
-        end), true)
-      end     -- for _, credential in ipairs({ test_credential_1, test_credential_2 }) do
-    end)      -- retry(function()
-
-  end)        -- it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function()
-end           -- if limit_by == "consumer" and limit_by == "credential" then
 
 end)
 
