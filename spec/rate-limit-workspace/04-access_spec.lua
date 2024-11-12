@@ -424,21 +424,7 @@ describe(desc, function()
     local consumer
     local credential
 
-    if limit_by == "consumer" or limit_by == "credential" then
-      auth_plugin = setup_key_auth_plugin(admin_client, {
-        key_names = { test_key_name },
-      }, service)
-      consumer = setup_consumer(admin_client, "Bob")
-      credential = setup_credential(admin_client, consumer, test_credential)
-    end
-
     finally(function()
-      if limit_by == "consumer" or limit_by == "credential" then
-        delete_credential(admin_client, credential)
-        delete_consumer(admin_client, consumer)
-        delete_plugin(admin_client, auth_plugin)
-      end
-
       delete_plugin(admin_client, rl_plugin)
       delete_route(admin_client, route)
       delete_service(admin_client, service)
@@ -556,15 +542,15 @@ describe(desc, function ()
     assert(https_server, "unexpected error")
     https_server:shutdown()
     local _
-    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting", "key-auth" })
+    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting-workspace", "key-auth" })
     db:reset()
   end)
 
   before_each(function ()
     local _
-    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting", "key-auth" })
+    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting-workspace", "key-auth" })
     db:reset()
-    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting", "key-auth" })
+    _, db = helpers.get_db_utils(strategy, nil, { "rate-limiting-workspace", "key-auth" })
 
     if policy == "redis" then
       redis_helper.reset_redis(REDIS_HOST, REDIS_PORT)
