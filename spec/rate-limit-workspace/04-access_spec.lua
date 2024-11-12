@@ -478,7 +478,7 @@ describe(desc, function()
 
 if limit_by == "workspace" then
   it("blocks if exceeding limit (workspace)", function ()
-    local test_path_1
+    local test_path_1 = "/test_path_1"
 
     local service_1 = setup_service(admin_client, UPSTREAM_URL)
     local route_1 = setup_route(admin_client, service_1, { test_path_1 })
@@ -526,7 +526,7 @@ end)
 end     -- for ssl_conf_name, ssl_conf in pairs(ssl_confs) do
 end     -- for ___, limit_by in ipairs(limit_by_confs) do
 
-desc = fmt("Plugin: rate-limiting fault tolerancy #db (access) [strategy: %s] [policy: %s]",
+desc = fmt("Plugin: rate-limiting-workspace fault tolerancy #db (access) [strategy: %s] [policy: %s]",
                  strategy, policy)
 
 describe(desc, function ()
@@ -889,7 +889,7 @@ describe(desc, function ()
     admin_client:close()
   end)
 
-  it("global for single consumer", function()
+  it("global for single workspace", function()
     local test_path_1, test_path_2 = "/1-test", "/2-test"
     local test_key_name = "test-key"
     local test_credential = "test-credential"
