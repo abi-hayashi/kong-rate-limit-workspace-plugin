@@ -891,7 +891,7 @@ describe(desc, function ()
     local rl_plugin = setup_rl_plugin(admin_client, {
       minute              = 6,
       policy              = "local",
-      limit_by            = "credential",
+      limit_by            = "workspace",
       redis = {
         host          = REDIS_HOST,
         port          = REDIS_PORT,
