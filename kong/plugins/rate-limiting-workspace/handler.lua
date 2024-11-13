@@ -84,7 +84,7 @@ local function get_identifier(conf)
 
   -- return identifier or kong.client.get_forwarded_ip()
 
-  identifier = kong.router.get_service().workspace_id
+  identifier = kong.router.get_service().ws_id
   return identifier or EMPTY.id
 
 end
