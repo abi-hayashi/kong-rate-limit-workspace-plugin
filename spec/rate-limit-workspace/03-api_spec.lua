@@ -13,6 +13,9 @@ for _, strategy in helpers.each_strategy() do
         "routes",
         "services",
         "plugins",
+      }, {
+        "bundled",
+        "rate-limiting-workspace",
       })
     end)
 
