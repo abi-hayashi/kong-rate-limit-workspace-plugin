@@ -846,7 +846,7 @@ describe(desc, function ()
 
   lazy_setup(function()
     helpers.get_db_utils(strategy, nil, {
-      "rate-limiting", "key-auth",
+      "rate-limiting-workspace", "key-auth",
     })
 
     https_server = helpers.https_server.new(UPSTREAM_PORT)
