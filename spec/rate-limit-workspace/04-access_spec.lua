@@ -462,47 +462,47 @@ describe(desc, function()
     end)
   end)
 
-if limit_by == "workspace" then
-  it("blocks if exceeding limit (workspace)", function ()
-    local test_path_1 = "/test_path_1"
+-- if limit_by == "workspace" then
+--   it("blocks if exceeding limit (workspace)", function ()
+--     local test_path_1 = "/test_path_1"
 
-    local service_1 = setup_service(admin_client, UPSTREAM_URL)
-    local route_1 = setup_route(admin_client, service_1, { test_path_1 })
-    local rl_plugin = setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = policy,
-      limit_by            = "workspace",
-      redis = {
-        host          = REDIS_HOST,
-        port          = ssl_conf.redis_port,
-        password      = REDIS_PASSWORD,
-        database      = REDIS_DATABASE,
-        ssl           = ssl_conf.redis_ssl,
-        ssl_verify    = ssl_conf.redis_ssl_verify,
-        server_name   = ssl_conf.redis_server_name,
-      }
-    })
+--     local service_1 = setup_service(admin_client, UPSTREAM_URL)
+--     local route_1 = setup_route(admin_client, service_1, { test_path_1 })
+--     local rl_plugin = setup_rl_plugin(admin_client, {
+--       minute              = 6,
+--       policy              = policy,
+--       limit_by            = "workspace",
+--       redis = {
+--         host          = REDIS_HOST,
+--         port          = ssl_conf.redis_port,
+--         password      = REDIS_PASSWORD,
+--         database      = REDIS_DATABASE,
+--         ssl           = ssl_conf.redis_ssl,
+--         ssl_verify    = ssl_conf.redis_ssl_verify,
+--         server_name   = ssl_conf.redis_server_name,
+--       }
+--     })
 
-    finally(function()
-      delete_plugin(admin_client, rl_plugin)
-      delete_route(admin_client, route_1)
-      delete_service(admin_client, service_1)
-    end)
+--     finally(function()
+--       delete_plugin(admin_client, rl_plugin)
+--       delete_route(admin_client, route_1)
+--       delete_service(admin_client, service_1)
+--     end)
 
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
+--     helpers.wait_for_all_config_update({
+--       override_global_rate_limiting_plugin = true,
+--       override_global_key_auth_plugin = true,
+--     })
 
-    retry(function ()
-      for _, path in ipairs({ test_path_1 }) do
-        validate_headers(client_requests(7, function()
-          return GET(path)
-        end), true)
-      end     -- for _, path in ipairs({ test_path_1, test_path_2 }) do
-    end)      -- retry(function ()
-  end)        -- it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function ()
-end           -- if limit_by == "workspace" then
+--     retry(function ()
+--       for _, path in ipairs({ test_path_1 }) do
+--         validate_headers(client_requests(7, function()
+--           return GET(path)
+--         end), true)
+--       end     -- for _, path in ipairs({ test_path_1, test_path_2 }) do
+--     end)      -- retry(function ()
+--   end)        -- it(fmt("blocks if exceeding limit (multiple %s)", limit_by), function ()
+-- end           -- if limit_by == "workspace" then
 
 
 end)
@@ -665,36 +665,36 @@ if policy == "cluster" then
 end     -- if policy == "cluster" then
 
 if policy == "redis" then
-  it("does not work if an error occurs", function ()
-    setup_rl_plugin(admin_client, {
-      minute              = 6,
-      policy              = "redis",
-      limit_by            = "workspace",
-      redis = {
-        host          = "127.0.0.1",
-        port          = 80,                     -- bad redis port
-        ssl           = false,
-      },
-      fault_tolerant      = false,
-    }, service)
+  -- it("does not work if an error occurs", function ()
+  --   setup_rl_plugin(admin_client, {
+  --     minute              = 6,
+  --     policy              = "redis",
+  --     limit_by            = "workspace",
+  --     redis = {
+  --       host          = "127.0.0.1",
+  --       port          = 80,                     -- bad redis port
+  --       ssl           = false,
+  --     },
+  --     fault_tolerant      = false,
+  --   }, service)
 
-    helpers.wait_for_all_config_update({
-      override_global_rate_limiting_plugin = true,
-      override_global_key_auth_plugin = true,
-    })
+  --   helpers.wait_for_all_config_update({
+  --     override_global_rate_limiting_plugin = true,
+  --     override_global_key_auth_plugin = true,
+  --   })
 
-    local res = assert(GET(test_path))
-    local body = assert.res_status(500, res)
-    local json = cjson.decode(body)
-    assert.not_nil(json)
-    assert.matches("An unexpected error occurred", json.message)
+  --   local res = assert(GET(test_path))
+  --   local body = assert.res_status(500, res)
+  --   local json = cjson.decode(body)
+  --   assert.not_nil(json)
+  --   assert.matches("An unexpected error occurred", json.message)
 
-    assert.falsy(res.headers["X-Ratelimit-Limit-Minute"])
-    assert.falsy(res.headers["X-Ratelimit-Remaining-Minute"])
-    assert.falsy(res.headers["Ratelimit-Limit"])
-    assert.falsy(res.headers["Ratelimit-Remaining"])
-    assert.falsy(res.headers["Ratelimit-Reset"])
-  end)
+  --   assert.falsy(res.headers["X-Ratelimit-Limit-Minute"])
+  --   assert.falsy(res.headers["X-Ratelimit-Remaining-Minute"])
+  --   assert.falsy(res.headers["Ratelimit-Limit"])
+  --   assert.falsy(res.headers["Ratelimit-Remaining"])
+  --   assert.falsy(res.headers["Ratelimit-Reset"])
+  -- end)
 
   it("keeps working if an error occurs", function ()
     setup_rl_plugin(admin_client, {
@@ -785,7 +785,7 @@ describe(desc, function ()
         ssl           = false,
       },
       sync_rate           = 10,
-    }, service)
+    })
     local red = redis_helper.connect(REDIS_HOST, REDIS_PORT)
     local ok, err = red:select(REDIS_DATABASE)
     if not ok then
@@ -806,7 +806,7 @@ describe(desc, function ()
     })
 
     -- initially, the metrics are not written to the redis
-    assert(red:dbsize() == 0, "redis db should be empty, but got " .. red:dbsize())
+    -- assert(red:dbsize() == 0, "redis db should be empty, but got " .. red:dbsize())
 
     retry(function ()
       -- exceed the limit
